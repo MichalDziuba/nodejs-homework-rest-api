@@ -14,7 +14,6 @@ passport.use(
   new Strategy(params, function (payload, done) {
     User.findOne({ _id: payload._id })
       .then((user) => {
-        // console.log(user);
         if (!user) {
           return done(new Error("user not found"));
         }

@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
   const userExist = await service.findUserByEmail(email);
-  console.log(await User.findOne({ email }));
 
   const validationResult = userSchema.validate(req.body);
   if (validationResult.error) {
@@ -44,7 +43,6 @@ const loginUser = async (req, res, next) => {
   const user = await service.findUserByEmail(email);
 
   const isPasswordCorrect = await user?.validatePassword(password);
-  console.log(isPasswordCorrect);
   if (!user || !isPasswordCorrect) {
     return res.status(401).json({ message: "Email or password is wrong" });
   }
