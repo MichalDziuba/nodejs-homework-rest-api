@@ -4,7 +4,10 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 const PORT = process.env.PORT || 3000;
 const uriDb = process.env.DB_SRV;
+const jwt = require("jsonwebtoken");
 
+
+require("./config/passport");
 const connection = mongoose.connect(uriDb, {
   useNewUrlParser: true,
   useUnifiedTopology: true,

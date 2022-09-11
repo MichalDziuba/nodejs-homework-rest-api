@@ -1,5 +1,5 @@
 const e = require("express");
-const service = require("../../service");
+const service = require("../../service/contacts");
 const { validationSchema } = require("../../service/schemas/validation");
 const { updateContactSchema } = require("../../service/schemas/validation");
 const getAllContacts = async (req, res, next) => {
@@ -30,14 +30,12 @@ const getContactById = async (req, res, next) => {
 const postContact = async (req, res, next) => {
   const data = req.body;
   const validationResult = validationSchema.validate(data);
-  console.log(validationResult)
   if (validationResult.error) {
     res.status(400).json({ message: "missing required name field" });
     next();
   } else {
     try {
       const result = await service.createContact(data);
-      console.log(result)
       res.status(201).json(result);
     } catch (e) {
       next(e);
@@ -47,7 +45,6 @@ const postContact = async (req, res, next) => {
 const putContact = async (req, res, next) => {
   const { id } = req.params;
   const data = req.body;
-  console.log(data);
   const validationResult = updateContactSchema.validate(data);
   if (
     Object.keys(validationResult.value).length === 0 ||
@@ -87,7 +84,6 @@ const deleteContact = async (req, res, next) => {
 const patchContactFavorite = async (req, res, next) => {
   const { id } = req.params;
   const { favorite } = req.body;
-  console.log(id, favorite);
   try {
     const result = await service.updateContactFavorite(id, { favorite });
     if (result) {
