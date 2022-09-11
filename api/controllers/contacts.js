@@ -1,5 +1,5 @@
 const e = require("express");
-const service = require("../../service");
+const service = require("../../service/contacts");
 const { validationSchema } = require("../../service/schemas/validation");
 const { updateContactSchema } = require("../../service/schemas/validation");
 const getAllContacts = async (req, res, next) => {
@@ -58,6 +58,7 @@ const putContact = async (req, res, next) => {
   } else {
     try {
       const result = await service.updateContact(id, data);
+      console.log(id,data)
       if (result) {
         res.status(200).json(result);
       } else {
@@ -87,7 +88,7 @@ const deleteContact = async (req, res, next) => {
 const patchContactFavorite = async (req, res, next) => {
   const { id } = req.params;
   const { favorite } = req.body;
-  console.log(id, favorite);
+  console.log(favorite)
   try {
     const result = await service.updateContactFavorite(id, { favorite });
     if (result) {
