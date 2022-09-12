@@ -3,10 +3,10 @@ const User = require("../../service/schemas/user");
 const { userSchema } = require("../../service/schemas/validation");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-const storeDir=require("../../app")
+const storeDir = require("../../app");
 const fs = require("fs").promises;
-
-
+const { resendEmailSchema } = require("../../service/schemas/validation");
+const e = require("express");
 const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
   const userExist = await service.findUserByEmail(email);
@@ -21,8 +21,10 @@ const registerUser = async (req, res, next) => {
     try {
       const newUser = new User({ email });
       await newUser.setPassword(password);
-      await newUser.createDefaultAvatar({email})
+      await newUser.createDefaultAvatar({ email });
+      await newUser.createVerificationToken();
       await newUser.save();
+      await newUser.sendMail(newUser.email, newUser.verificationToken);
       res
         .json({
           user: {
@@ -45,25 +47,31 @@ const loginUser = async (req, res, next) => {
     res.status(400).json(validationResult.error.message);
   }
   const user = await service.findUserByEmail(email);
-
+  
   const isPasswordCorrect = await user?.validatePassword(password);
   if (!user || !isPasswordCorrect) {
     return res.status(401).json({ message: "Email or password is wrong" });
   }
-  const payload = {
-    _id: user._id,
-    email: user.email,
-  };
-  const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "72h" });
-
-  await service.updateUserData(user._id, { token: token });
-  res.status(200).json({
-    token: token,
-    user: {
+  if (!user.verify) {
+    res.status(401).json({ message: "Please verify your email!" })
+  } else {
+    
+  
+    const payload = {
+      _id: user._id,
       email: user.email,
-      subscription: user.subscription,
-    },
-  });
+    };
+    const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "72h" });
+
+    await service.updateUserData(user._id, { token: token });
+    res.status(200).json({
+      token: token,
+      user: {
+        email: user.email,
+        subscription: user.subscription,
+      },
+    });
+  }
 };
 const logoutUser = async (req, res, next) => {
   const data = req.user;
@@ -86,21 +94,20 @@ const currentUser = async (req, res, next) => {
   const userId = data._id;
 
   const user = await service.findUserById(userId);
+  console.log(user);
   if (!user) {
     res.status(401).json({ message: "Not authorized" });
   }
- 
-    res.status(200).json({
-      email: user.email,
-      subscription:user.subscription
-    })
 
-  
+  res.status(200).json({
+    email: user.email,
+    subscription: user.subscription,
+  });
 };
 
 const updateAvatar = async (req, res, next) => {
   if (!req.file) {
-    return res.status(400).json({message:"there is no file"})
+    return res.status(400).json({ message: "there is no file" });
   }
   const { description } = req.body;
   const { path: temporaryName } = req.file;
@@ -113,10 +120,10 @@ const updateAvatar = async (req, res, next) => {
   }
   const isValid = await isImage(filename);
   if (!isValid) {
-    await fs.unlink(fileName)
-      return res
-        .status(400)
-        .json({ message: "File isn't a photo but it's pretending" });
+    await fs.unlink(fileName);
+    return res
+      .status(400)
+      .json({ message: "File isn't a photo but it's pretending" });
   }
   res.json({
     description,
@@ -124,11 +131,40 @@ const updateAvatar = async (req, res, next) => {
     message: "File uploaded correctly",
     status: 200,
   });
-}
+};
+const verifyEmail = async (req, res, next) => {
+  const { verificationToken } = req.params;
+
+  try {
+    console.log(service.verifyUser(verificationToken));
+
+    res.status(200).json({ message: "Verification successful" });
+  } catch {
+    res.status(404).json({ message: "User not found" });
+  }
+};
+
+const resendEmail = async (req, res, next) => {
+  const data = req.body;
+  const result = resendEmailSchema.validate(data);
+
+  if (result.error) {
+    res.status(400).json({ message: "missing required field email" });
+  } else {
+    try {
+      await service.resendEmailToUser(data.email);
+      res.status(200).json({ message: "Verification email sent" });
+    } catch (e) {
+      res.status(400).json({ message: "Verification has already been passed" });
+    }
+  }
+};
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   currentUser,
   updateAvatar,
+  verifyEmail,
+  resendEmail,
 };
