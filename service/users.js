@@ -14,5 +14,30 @@ const updateUserData = (id, data) =>
       runValidators: true,
     }
   );
-
-module.exports = { findUserByEmail, updateUserData, findUserById };
+const verifyUser = async (verificationToken) => {
+  await User.findOneAndUpdate(
+    {
+      verificationToken: verificationToken,
+    },
+    { $set: { verify: true, verificationToken: "null" } },
+    {
+      new: true,
+      runValidators: true,
+      strict: "throw",
+    }
+  );
+};
+const resendEmailToUser = async (email) => {
+  const user = await User.findOne({ email: email });
+  if (user.verify) {
+    throw new Error();
+  }
+  await user.sendMail(user.email, user.verificationToken);
+};
+module.exports = {
+  findUserByEmail,
+  updateUserData,
+  findUserById,
+  verifyUser,
+  resendEmailToUser,
+};

@@ -15,4 +15,7 @@ const userSchema = Joi.object({
   password: Joi.string().min(5).max(30).required(),
   email: Joi.string().email().min(8).max(50).required(),
 });
-module.exports = { validationSchema, updateContactSchema, userSchema };
+const resendEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+module.exports = { validationSchema, updateContactSchema, userSchema, resendEmailSchema};
