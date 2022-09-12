@@ -1,13 +1,12 @@
-const app = require("./app");
-const cors = require("cors");
+const { app, uploadDir, storeDir } = require("./app");
 const mongoose = require("mongoose");
 require("dotenv").config();
+const { createFolderIfItDoesntExist } = require("./service/index.js");
 const PORT = process.env.PORT || 3000;
 const uriDb = process.env.DB_SRV;
-const jwt = require("jsonwebtoken");
-
 
 require("./config/passport");
+
 const connection = mongoose.connect(uriDb, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -15,7 +14,9 @@ const connection = mongoose.connect(uriDb, {
 connection
   .then(() => {
     console.log("Database connection successful");
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
+      await createFolderIfItDoesntExist(uploadDir);
+      await createFolderIfItDoesntExist(storeDir);
       console.log(`Server running. Use our API on port: ${PORT}`);
     });
   })
