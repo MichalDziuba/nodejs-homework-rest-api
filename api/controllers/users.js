@@ -2,10 +2,14 @@ const service = require("../../service/users");
 const User = require("../../service/schemas/user");
 const { userSchema } = require("../../service/schemas/validation");
 const jwt = require("jsonwebtoken");
+const path = require("path");
+const storeDir=require("../../app")
+const fs = require("fs").promises;
+
+
 const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
   const userExist = await service.findUserByEmail(email);
-
   const validationResult = userSchema.validate(req.body);
   if (validationResult.error) {
     res.status(400).json(validationResult.error.message);
@@ -17,8 +21,8 @@ const registerUser = async (req, res, next) => {
     try {
       const newUser = new User({ email });
       await newUser.setPassword(password);
+      await newUser.createDefaultAvatar({email})
       await newUser.save();
-
       res
         .json({
           user: {
@@ -52,7 +56,7 @@ const loginUser = async (req, res, next) => {
   };
   const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "72h" });
 
-  await service.updateUserToken(user._id, { token: token });
+  await service.updateUserData(user._id, { token: token });
   res.status(200).json({
     token: token,
     user: {
@@ -70,7 +74,7 @@ const logoutUser = async (req, res, next) => {
     res.status(401).json({ message: "Not authorized" });
   }
   try {
-    await service.updateUserToken(userId, { token: null });
+    await service.updateUserData(userId, { token: null });
     res.json(204);
   } catch (e) {
     next(e);
@@ -93,4 +97,38 @@ const currentUser = async (req, res, next) => {
 
   
 };
-module.exports = { registerUser, loginUser, logoutUser, currentUser };
+
+const updateAvatar = async (req, res, next) => {
+  if (!req.file) {
+    return res.status(400).json({message:"there is no file"})
+  }
+  const { description } = req.body;
+  const { path: temporaryName } = req.file;
+  const fileName = path.join(storeDir, req.file.filename);
+  try {
+    await fs.rename(temporaryName, fileName);
+  } catch (e) {
+    await fs.unlink(temporaryName);
+    return next(err);
+  }
+  const isValid = await isImage(filename);
+  if (!isValid) {
+    await fs.unlink(fileName)
+      return res
+        .status(400)
+        .json({ message: "File isn't a photo but it's pretending" });
+  }
+  res.json({
+    description,
+    fileName,
+    message: "File uploaded correctly",
+    status: 200,
+  });
+}
+module.exports = {
+  registerUser,
+  loginUser,
+  logoutUser,
+  currentUser,
+  updateAvatar,
+};

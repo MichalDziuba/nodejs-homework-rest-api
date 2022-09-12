@@ -1,5 +1,7 @@
 const { Schema, model } = require("mongoose");
 const bCrypt = require("bcrypt");
+const gravatar = require("gravatar");
+
 const userSchema = new Schema({
   password: {
     type: String,
@@ -19,6 +21,10 @@ const userSchema = new Schema({
     type: String,
     default: null,
   },
+  avatarURL: {
+    type: String,
+
+  },
 });
 userSchema.methods.setPassword = async function (password) {
   this.password = await bCrypt.hash(password, bCrypt.genSaltSync(6));
@@ -26,6 +32,9 @@ userSchema.methods.setPassword = async function (password) {
 userSchema.methods.validatePassword = function (password) {
   return bCrypt.compare(password, this.password);
 };
+userSchema.methods.createDefaultAvatar = async function (url) {
+  this.avatarURL= await gravatar.url(url)
+}
 const User = model("user", userSchema, "users");
 
 module.exports = User;

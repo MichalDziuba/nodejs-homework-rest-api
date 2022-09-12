@@ -2,7 +2,7 @@ const User = require("./schemas/user");
 
 const findUserByEmail = (email) => User.findOne({ email: email });
 const findUserById = (id) => User.findOne({ _id: id });
-const updateUserToken = (id, data) =>
+const updateUserData = (id, data) =>
   User.findOneAndUpdate(
     { _id: id },
     {
@@ -15,4 +15,4 @@ const updateUserToken = (id, data) =>
     }
   );
 
-module.exports = { findUserByEmail, updateUserToken, findUserById };
+module.exports = { findUserByEmail, updateUserData, findUserById };
